@@ -1,0 +1,113 @@
+let x := ((select TLH) order by 'D Day Date');
+let months := ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+let years := ["2022", "2023", "2024", "2025"];
+let lineChartDataset := for year in years do
+		let countsArray := for month in months do
+				let count := count(x[format('D Day Date', "YYYY") = year and format('D Day Date', "MMM") = month]);
+				text(count)
+			end;
+		{
+			Year: year,
+			Counts: join(countsArray, ", ")
+		}
+	end;
+let seriesData := join(for d in lineChartDataset do
+		"{ name: '" + d.Year +
+		"', type: 'line', lineStyle: { width: 3 }, symbol: 'circle', symbolSize: 6, data: [" +
+		d.Counts +
+		"] }"
+	end, ", ");
+let allAges := for n in range(0, 110) do
+		{
+			Age: text(n),
+			Count: count(x[StatAge = n])
+		}
+	end;
+let barAges := join(for d in allAges do
+		"'" + d.Age + "'"
+	end, ", ");
+let barCounts := join(for d in allAges do
+		text(d.Count)
+	end, ", ");
+let categories := ["Unknown", "Suicide", "Accident", "Cardiovascular", "Digestive", "Endocrine", "Integumentary (Skin)", "Lymphatic", "Multi-organ", "Muscular", "Nervous / Brain", "Reproductive", "Respiratory", "Skeletal", "Urinary", "Perinatal", "Neonatal", "Other", "Homicide"];
+let allCODData := for category in categories do
+		{
+			Category: category,
+			Count: count(x['COD Category - Data Collection' = category])
+		}
+	end;
+let pie1Data := join(for d in allCODData do
+		"{ name: '" + d.Category + "', value: " + text(d.Count) + " }"
+	end, ", ");
+html("<html>
+  <head>
+    <script src='https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js'></script>
+  </head>
+  <body style='background-color: #f4f4f4;'>
+    <div style='display: flex;'>
+      <div id='line-chart' style='width: 50%; height: 500px; padding: 20px; background: white; border-radius: 10px;'></div>
+      <div id='bar-chart' style='width: 50%; height: 500px; padding: 20px; background: white; border-radius: 10px;'></div>
+    </div>
+    <div style='display: flex; margin-top: 20px;'>
+      <div id='pie-chart-1' style='width: 50%; height: 400px; padding: 20px; background: white; border-radius: 10px;'></div>
+    </div>
+    <script>
+      var lineChart = echarts.init(document.getElementById('line-chart'));
+      var lineOptions = {
+        title: { text: 'Funerals per month', left: 'center' },
+        tooltip: { trigger: 'axis' },
+        legend: { left: 'center', bottom: 0, data: [" +
+join(years, ", ") +
+"] },
+        grid: { left: '10%', right: '10%', bottom: '15%' },
+        xAxis: { type: 'category', data: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], axisLabel: { fontSize: 12 } },
+        yAxis: { type: 'value', name: 'Count', axisLabel: { fontSize: 12 } },
+        series: [" +
+seriesData +
+"]
+      };
+      lineChart.setOption(lineOptions);
+      var barChart = echarts.init(document.getElementById('bar-chart'));
+      var barOptions = {
+        title: { text: 'Age at Death (All records)', left: 'center' },
+        tooltip: { trigger: 'axis' },
+        grid: { left: '10%', right: '10%', bottom: '15%' },
+        xAxis: { 
+          type: 'category',
+          data: [" +
+barAges +
+"],
+          name: 'Age at Death',
+          axisLabel: { rotate: 45, fontSize: 12 }
+        },
+        yAxis: { 
+          type: 'value',
+          name: 'Count',
+          axisLabel: { fontSize: 12 }
+        },
+        series: [{ 
+          name: 'Age Count', 
+          type: 'bar', 
+          data: [" +
+barCounts +
+"],
+          itemStyle: { color: 'rgb(60, 141, 188)' }
+        }]
+      };
+      barChart.setOption(barOptions);
+      var pieChart1 = echarts.init(document.getElementById('pie-chart-1'));
+      var pieOptions1 = {
+        title: { text: 'COD Category Distribution', left: 'center' },
+        tooltip: { trigger: 'item' },
+        series: [{
+          type: 'pie',
+          radius: '60%',
+          data: [" +
+pie1Data +
+"]
+        }]
+      };
+      pieChart1.setOption(pieOptions1);
+    </script>
+  </body>
+</html>")
